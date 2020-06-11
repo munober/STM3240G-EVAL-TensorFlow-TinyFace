@@ -113,6 +113,7 @@ int main(void)
   
   /* Configure LED1 and LED3 */
   BSP_LED_Init(LED1);
+  BSP_LED_Init(LED2);
   BSP_LED_Init(LED3);
   
   /*##-1- Init Host Library ##################################################*/
@@ -296,7 +297,7 @@ static void PicturePrepare(void)
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
 {  
   switch (id)
-  { 
+  {
   case HOST_USER_SELECT_CONFIGURATION:
     break;
     
