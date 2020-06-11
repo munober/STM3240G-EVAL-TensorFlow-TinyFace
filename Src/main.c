@@ -86,6 +86,7 @@ static void Error_Handler(void);
 static void SavePicture(void);
 static void CAMERA_Capture(void);
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id);
+static void DetectFace(void);
 
 #define RGB565_TO_R(pixel)   (((pixel & 0x1F) << 3) | ((((pixel & 0x1F) << 3) & 0xE0) >> 5));
 #define RGB565_TO_G(pixel)   (((pixel & 0x7E0) >> 3) | ((((pixel & 0x7E0) >> 3) & 0xC0) >> 6));
@@ -115,6 +116,7 @@ int main(void)
   BSP_LED_Init(LED1);
   BSP_LED_Init(LED2);
   BSP_LED_Init(LED3);
+  BSP_LED_Init(LED4);
   
   /*##-1- Init Host Library ##################################################*/
   USBH_Init(&hUSBHost, USBH_UserProcess, 0);
@@ -204,6 +206,11 @@ static void SavePicture(void)
     /* Write data to the BMP file */
     res1 = f_write(&MyFile, (uint32_t *)aBMPHeader, 54, (void *)&byteswritten);
     res2 = f_write(&MyFile, (uint16_t *)SRAM_DEVICE_ADDR, (BSP_LCD_GetYSize()*BSP_LCD_GetXSize()*sizeof(uint32_t)), (void *)&byteswritten);
+
+    /*
+        file to be written is at &MyFile
+        pointer to data is aBMPHeader
+    */
     
     if((res1 != FR_OK) || (res2 != FR_OK) || (byteswritten == 0))
     {
@@ -217,11 +224,16 @@ static void SavePicture(void)
       /* Success of the demo: no error occurrence */
       BSP_LED_On(LED1);
 
-      /* Wait for 2s */
-      HAL_Delay(2000);
+      /* Running inference */
+      DetectFace();
+      BSP_LED_On(LED4); // succesful inference
+
+      /* Holding up */
+      HAL_Delay(500);
 
       counter++;
       BSP_LED_Off(LED1);
+      BSP_LED_Off(LED4);
     }
   }
 }
@@ -318,6 +330,47 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
       Appli_state = STORAGE_READY;
     }
     break;
+  }
+}
+
+
+static void DetectFace(void){
+
+  uint32_t pixels = (uint16_t *)SRAM_DEVICE_ADDR;
+  uint32_t address = 0;
+  
+  uint16_t x = 0;
+  uint16_t y = 0;
+  uint16_t tmp = 0;
+  uint8_t aRGB[4];
+  
+  // Reading data from SRAM
+  // for(y = (BSP_LCD_GetYSize()); y >= 0; y--)
+  // { 
+  //   for(x = (BSP_LCD_GetXSize()); x >= 0; x--)
+  //   {      
+  //     tmp  = (uint16_t *)(pixels - address); 
+      
+  //     aRGB[0] =  RGB565_TO_R(tmp);
+  //     aRGB[1] =  RGB565_TO_G(tmp);
+  //     aRGB[2] =  RGB565_TO_B(tmp);
+  //     aRGB[3] =  0xFF;
+  //     address += 4;
+  //   }
+  //   address -= 8*BSP_LCD_GetXSize();
+  // }  
+  
+
+  int face_present = 1;
+  BSP_LCD_SetFont(&Font16);
+  if (face_present){
+	  // BSP_LCD_Clear(LCD_COLOR_WHITE);
+	  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"POSITIVE", LEFT_MODE);
+  }
+  else{
+    BSP_LCD_SetTextColor(LCD_COLOR_RED);
+    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"NEGATIVE", LEFT_MODE);
   }
 }
 
