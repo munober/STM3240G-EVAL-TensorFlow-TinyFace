@@ -45,6 +45,9 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "main_functions.h"
+#include "constants.h"
+#include "model_data.h"
 
 /** @addtogroup STM32F4xx_HAL_Applications
   * @{
@@ -366,7 +369,8 @@ static void DetectFace(void){
   if (face_present){
 	  // BSP_LCD_Clear(LCD_COLOR_WHITE);
 	  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"POSITIVE", LEFT_MODE);
+    uint8_t myVar = model_data_tflite[1];
+    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)myVar, LEFT_MODE);
   }
   else{
     BSP_LCD_SetTextColor(LCD_COLOR_RED);
