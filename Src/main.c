@@ -90,6 +90,7 @@ static void SavePicture(void);
 static void CAMERA_Capture(void);
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id);
 static void DetectFace(void);
+static uint8_t NormalizeImage(uint8_t image);
 
 #define RGB565_TO_R(pixel)   (((pixel & 0x1F) << 3) | ((((pixel & 0x1F) << 3) & 0xE0) >> 5));
 #define RGB565_TO_G(pixel)   (((pixel & 0x7E0) >> 3) | ((((pixel & 0x7E0) >> 3) & 0xC0) >> 6));
@@ -345,24 +346,7 @@ static void DetectFace(void){
   uint16_t x = 0;
   uint16_t y = 0;
   uint16_t tmp = 0;
-  uint8_t aRGB[4];
-  
-  // Reading data from SRAM
-  // for(y = (BSP_LCD_GetYSize()); y >= 0; y--)
-  // { 
-  //   for(x = (BSP_LCD_GetXSize()); x >= 0; x--)
-  //   {      
-  //     tmp  = (uint16_t *)(pixels - address); 
-      
-  //     aRGB[0] =  RGB565_TO_R(tmp);
-  //     aRGB[1] =  RGB565_TO_G(tmp);
-  //     aRGB[2] =  RGB565_TO_B(tmp);
-  //     aRGB[3] =  0xFF;
-  //     address += 4;
-  //   }
-  //   address -= 8*BSP_LCD_GetXSize();
-  // }  
-  
+  uint8_t aRGB[4];  
 
   int face_present = 1;
   BSP_LCD_SetFont(&Font16);
@@ -376,6 +360,34 @@ static void DetectFace(void){
     BSP_LCD_SetTextColor(LCD_COLOR_RED);
     BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"NEGATIVE", LEFT_MODE);
   }
+}
+
+static uint8_t NormalizeImage(uint8_t image){
+  uint8_t min = 0;
+  uint8_t max = 0;
+
+  // finding the minimum and maximum original range
+
+  for(int i = 0; i < (sizeof(image) / sizeof(uint8_t)); i++){
+    for(int j  = 0; j <  (sizeof(image) / sizeof(uint8_t)); j++){
+      tmp = image[i][j]
+      if (tmp < min)
+        min = tmp
+      if (tmp > max)
+        max = tmp
+    }
+  }
+
+  float scale = 10 / (max - min)
+
+  for(int i = 0; i < (sizeof(image) / sizeof(uint8_t)); i++){
+    for(int j  = 0; j <  (sizeof(image) / sizeof(uint8_t)); j++){
+      tmp = image[i][j]
+      image[i][j] = uint8_t(scale * tmp)
+    }
+  }
+
+  return image;
 }
 
 /**
