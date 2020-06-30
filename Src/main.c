@@ -364,13 +364,25 @@ static void DetectFace(void){
   // }  
   
 
-  int face_present = 1;
+  
+  unsigned char face_confidence = 0; // figure out how to get this from NN
+  unsigned char noface_confidence = 0; // figure out how to get this from NN
+
+  unsigned char face_present = 0; 
+  unsigned char positive_threshold = 75;
+  unsigned char negative_threshold = 50;
+  
+  if (face_confidence >= positive_threshold && noface_confidence <= negative_threshold){
+    face_present = 1;
+  }
+
+
+
+
   BSP_LCD_SetFont(&Font16);
   if (face_present){
-	  // BSP_LCD_Clear(LCD_COLOR_WHITE);
 	  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-    uint8_t myVar = model_data_tflite[1];
-    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)myVar, LEFT_MODE);
+    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"POSITIVE", LEFT_MODE);
   }
   else{
     BSP_LCD_SetTextColor(LCD_COLOR_RED);
