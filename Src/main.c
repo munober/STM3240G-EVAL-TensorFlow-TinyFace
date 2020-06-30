@@ -382,20 +382,20 @@ static uint8_t NormalizeImage(uint8_t image){
 
   for(int i = 0; i < (sizeof(image) / sizeof(uint8_t)); i++){
     for(int j  = 0; j <  (sizeof(image) / sizeof(uint8_t)); j++){
-      tmp = image[i][j]
+      uint8_t tmp = image;
       if (tmp < min)
-        min = tmp
+        min = tmp;
       if (tmp > max)
-        max = tmp
+        max = tmp;
     }
   }
 
-  float scale = 10 / (max - min)
+  float scale = 10 / (max - min);
 
   for(int i = 0; i < (sizeof(image) / sizeof(uint8_t)); i++){
     for(int j  = 0; j <  (sizeof(image) / sizeof(uint8_t)); j++){
-      tmp = image[i][j]
-      image[i][j] = uint8_t(scale * tmp)
+      uint8_t tmp = image;
+      // image[i][j] = uint8_t(scale * tmp);
     }
   }
 
