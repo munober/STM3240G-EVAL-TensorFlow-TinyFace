@@ -375,16 +375,14 @@ void resize_rgb565in_rgb888out(uint8_t* camera_image, uint8_t* resize_image)
 static void DetectFace(void){
   uint8_t resized_buffer[NUM_OUT_CH*CNN_IMG_SIZE*CNN_IMG_SIZE];
   resize_rgb565in_rgb888out((uint8_t *)CAMERA_FRAME_BUFFER, resized_buffer);
-  float output_data[2];
-  BSP_LED_On(LED1);
+  BSP_LED_On(LED1); // starting inference
   static char ret_char;
   ret_char = loop((uint8_t*)resized_buffer, CNN_IMG_SIZE * CNN_IMG_SIZE);
 
 
   BSP_LCD_SetFont(&Font16);
   BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-  BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)((int)output_data[0] * 100), LEFT_MODE);
-  BSP_LCD_DisplayStringAt(40, 20, (uint8_t *)((int)output_data[1] * 100), LEFT_MODE);
+  BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)((int)ret_char * 100), LEFT_MODE);
 
   BSP_LED_On(LED4); // succesful inference
   HAL_Delay(500);
