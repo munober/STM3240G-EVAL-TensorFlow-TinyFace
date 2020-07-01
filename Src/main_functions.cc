@@ -61,7 +61,9 @@ void setup()
 		return;
 	}
 
-	static tflite::MicroMutableOpResolver<4> resolver;
+	// static tflite::ops::micro::AllOpsResolver resolver;
+
+	static tflite::MicroMutableOpResolver<5> resolver;
     // static tflite::MicroOpResolver<4> resolver;
     resolver.AddBuiltin(tflite::BuiltinOperator_DEPTHWISE_CONV_2D,
             tflite::ops::micro::Register_DEPTHWISE_CONV_2D());
@@ -69,15 +71,9 @@ void setup()
 			tflite::ops::micro::Register_RELU());
     resolver.AddBuiltin(tflite::BuiltinOperator_MAX_POOL_2D,
             tflite::ops::micro::Register_MAX_POOL_2D());
-	// 4 fire modules
-	// 1 dropout
-	resolver.AddBuiltin(tflite::BuiltinOperator_DEPTHWISE_CONV_2D,
-		tflite::ops::micro::Register_DEPTHWISE_CONV_2D());
-	resolver.AddBuiltin(tflite::BuiltinOperator_RELU,
-		tflite::ops::micro::Register_RELU());
     resolver.AddBuiltin(tflite::BuiltinOperator_AVERAGE_POOL_2D,
 		tflite::ops::micro::Register_AVERAGE_POOL_2D());
-		resolver.AddBuiltin(tflite::BuiltinOperator_SOFTMAX,
+	resolver.AddBuiltin(tflite::BuiltinOperator_SOFTMAX,
 		tflite::ops::micro::Register_SOFTMAX());
 
 	// Build an interpreter to run the model with.
