@@ -61,6 +61,12 @@
 /* Private define ------------------------------------------------------------*/
 #define PRESSED_FIRST    0x00
 
+#define NUM_IN_CH 1
+#define NUM_OUT_CH 1
+#define IMG_WIDTH 320
+#define IMG_HEIGHT 240
+#define CNN_IMG_SIZE 50
+
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 uint8_t ubPressedButton = PRESSED_FIRST;
@@ -89,6 +95,7 @@ static void Error_Handler(void);
 static void SavePicture(void);
 static void CAMERA_Capture(void);
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id);
+void resize_rgb565in_rgb888out(uint8_t* camera_image, uint8_t* resize_image);
 static void DetectFace(void);
 static uint8_t NormalizeImage(uint8_t image);
 
@@ -192,54 +199,56 @@ static void SavePicture(void)
   uint8_t str[30];
   
   /* Suspend the camera capture */
-  BSP_CAMERA_Suspend();
+  // BSP_CAMERA_Suspend();
   
   /* Prepare the image to be saved */
-  PicturePrepare();
+  // PicturePrepare();
   
   /* Format the string */
-  sprintf((char *)str, "image_%lu.bmp", counter);
+  // sprintf((char *)str, "image_%lu.bmp", counter);
+  
   
   /* Create and Open a new file object with write access */
-  if(f_open(&MyFile, (const char*)str, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) 
-  {
-    Error_Handler();
-  }
-  else
-  {
-    /* Write data to the BMP file */
-    res1 = f_write(&MyFile, (uint32_t *)aBMPHeader, 54, (void *)&byteswritten);
-    res2 = f_write(&MyFile, (uint16_t *)SRAM_DEVICE_ADDR, (BSP_LCD_GetYSize()*BSP_LCD_GetXSize()*sizeof(uint32_t)), (void *)&byteswritten);
+  // if(f_open(&MyFile, (const char*)str, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) 
+  // {
+  //   Error_Handler();
+  // }
+  // else
+  // {
+  //   /* Write data to the BMP file */
+  //   res1 = f_write(&MyFile, (uint32_t *)aBMPHeader, 54, (void *)&byteswritten);
+  //   res2 = f_write(&MyFile, (uint16_t *)SRAM_DEVICE_ADDR, (BSP_LCD_GetYSize()*BSP_LCD_GetXSize()*sizeof(uint32_t)), (void *)&byteswritten);
 
-    /*
-        file to be written is at &MyFile
-        pointer to data is aBMPHeader
-    */
+  //   /*
+  //       file to be written is at &MyFile
+  //       pointer to data is aBMPHeader
+  //   */
     
-    if((res1 != FR_OK) || (res2 != FR_OK) || (byteswritten == 0))
-    {
-      Error_Handler();
-    }
-    else
-    {
-      /* Close the open BMP file */
-      f_close(&MyFile);
+    
+  //   if((res1 != FR_OK) || (res2 != FR_OK) || (byteswritten == 0))
+  //   {
+  //     Error_Handler();
+  //   }
+  //   else
+  //   {
+  //     /* Close the open BMP file */
+  //     f_close(&MyFile);
       
-      /* Success of the demo: no error occurrence */
-      BSP_LED_On(LED1);
+  //     /* Success of the demo: no error occurrence */
+  //     BSP_LED_On(LED1);
 
-      /* Running inference */
-      DetectFace();
-      BSP_LED_On(LED4); // succesful inference
+  //     /* Holding up */
+  //     HAL_Delay(500);
 
-      /* Holding up */
-      HAL_Delay(500);
+  //     counter++;
+  //     BSP_LED_Off(LED1);
+  //     BSP_LED_Off(LED4);
+  //   }
+  // }
 
-      counter++;
-      BSP_LED_Off(LED1);
-      BSP_LED_Off(LED4);
-    }
-  }
+
+
+
 }
 
 /**
@@ -255,7 +264,9 @@ static void CAMERA_Capture(void)
     {
       if(BSP_PB_GetState(BUTTON_TAMPER) != GPIO_PIN_SET) 
       {
-        SavePicture();
+        // SavePicture();
+        BSP_CAMERA_Suspend();
+        DetectFace();
         BSP_CAMERA_Resume();
       }
     }
@@ -337,41 +348,48 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
   }
 }
 
+void resize_rgb565in_rgb888out(uint8_t* camera_image, uint8_t* resize_image)
+{
+  // offset so that only the center part of rectangular image is selected for resizing
+  int width_offset = ((IMG_WIDTH-IMG_HEIGHT)/2)*NUM_IN_CH;
+
+  int yresize_ratio = (IMG_HEIGHT/CNN_IMG_SIZE)*NUM_IN_CH;
+  int xresize_ratio = (IMG_WIDTH/CNN_IMG_SIZE)*NUM_IN_CH;
+  int resize_ratio = (xresize_ratio<yresize_ratio)?xresize_ratio:yresize_ratio;
+
+  for(int y=0; y<CNN_IMG_SIZE; y++) {
+    for(int x=0; x<CNN_IMG_SIZE; x++) {
+      int orig_img_loc = (y*IMG_WIDTH*resize_ratio + x*resize_ratio + width_offset);
+      // correcting the image inversion here
+      int out_img_loc = ((CNN_IMG_SIZE-1-y)*CNN_IMG_SIZE + (CNN_IMG_SIZE-1-x))*NUM_OUT_CH;
+      uint8_t pix_lo = camera_image[orig_img_loc];
+      uint8_t pix_hi = camera_image[orig_img_loc+1];
+      // convert RGB565 to RGB888
+      resize_image[out_img_loc] = (0xF8 & pix_hi); 
+      resize_image[out_img_loc+1] = ((0x07 & pix_hi)<<5) | ((0xE0 & pix_lo)>>3);
+      resize_image[out_img_loc+2] = (0x1F & pix_lo) << 3;
+    }
+  }
+}
 
 static void DetectFace(void){
-
-  uint32_t pixels = (uint16_t *)SRAM_DEVICE_ADDR;
-  uint32_t address = 0;
-  
-  uint16_t x = 0;
-  uint16_t y = 0;
-  uint16_t tmp = 0;
-  uint8_t aRGB[4];  
-
-  
-  unsigned char face_confidence = 0; // figure out how to get this from NN
-  unsigned char noface_confidence = 0; // figure out how to get this from NN
-
-  unsigned char face_present = 0; 
-  unsigned char positive_threshold = 75;
-  unsigned char negative_threshold = 50;
-  
-  if (face_confidence >= positive_threshold && noface_confidence <= negative_threshold){
-    face_present = 1;
-  }
-
-
+  uint8_t resized_buffer[NUM_OUT_CH*CNN_IMG_SIZE*CNN_IMG_SIZE];
+  resize_rgb565in_rgb888out((uint8_t *)CAMERA_FRAME_BUFFER, resized_buffer);
+  float output_data[2];
+  BSP_LED_On(LED1);
+  static char ret_char;
+  ret_char = loop((uint8_t*)resized_buffer, CNN_IMG_SIZE * CNN_IMG_SIZE);
 
 
   BSP_LCD_SetFont(&Font16);
-  if (face_present){
-	  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"POSITIVE", LEFT_MODE);
-  }
-  else{
-    BSP_LCD_SetTextColor(LCD_COLOR_RED);
-    BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"NEGATIVE", LEFT_MODE);
-  }
+  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+  BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)((int)output_data[0] * 100), LEFT_MODE);
+  BSP_LCD_DisplayStringAt(40, 20, (uint8_t *)((int)output_data[1] * 100), LEFT_MODE);
+
+  BSP_LED_On(LED4); // succesful inference
+  HAL_Delay(500);
+  BSP_LED_Off(LED4);
+  BSP_LED_Off(LED1);
 }
 
 static uint8_t NormalizeImage(uint8_t image){
