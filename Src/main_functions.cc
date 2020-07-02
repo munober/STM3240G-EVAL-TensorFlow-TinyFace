@@ -96,7 +96,6 @@ void setup()
 char loop(uint8_t *img, uint32_t size)
 {
 	static TfLiteStatus invoke_status;
-	// Place our calculated x value in the model's input tensor
 	for (uint32_t i = 0; i < size; i++)
 		input->data.f[i] = img[i];
 
