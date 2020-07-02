@@ -35,7 +35,7 @@ int inference_count = 0;
 
 // Create an area of memory to use for input, output, and intermediate arrays.
 // Finding the minimum value for your model may require some trial and error.
-constexpr int kTensorArenaSize = 2 * 1024;
+constexpr int kTensorArenaSize = 10 * 142176;
 uint8_t tensor_arena[kTensorArenaSize];
 } // namespace
 
@@ -61,20 +61,14 @@ void setup()
 		return;
 	}
 
-	// static tflite::ops::micro::AllOpsResolver resolver;
-
-	static tflite::MicroMutableOpResolver<5> resolver;
-    // static tflite::MicroOpResolver<4> resolver;
-    resolver.AddBuiltin(tflite::BuiltinOperator_DEPTHWISE_CONV_2D,
-            tflite::ops::micro::Register_DEPTHWISE_CONV_2D());
-	resolver.AddBuiltin(tflite::BuiltinOperator_RELU,
-			tflite::ops::micro::Register_RELU());
-    resolver.AddBuiltin(tflite::BuiltinOperator_MAX_POOL_2D,
-            tflite::ops::micro::Register_MAX_POOL_2D());
-    resolver.AddBuiltin(tflite::BuiltinOperator_AVERAGE_POOL_2D,
-		tflite::ops::micro::Register_AVERAGE_POOL_2D());
-	resolver.AddBuiltin(tflite::BuiltinOperator_SOFTMAX,
-		tflite::ops::micro::Register_SOFTMAX());
+	tflite::MicroMutableOpResolver<4> resolver;
+    resolver.AddBuiltin(tflite::BuiltinOperator_DEPTHWISE_CONV_2D, tflite::ops::micro::Register_DEPTHWISE_CONV_2D());
+	resolver.AddBuiltin(tflite::BuiltinOperator_RELU, tflite::ops::micro::Register_RELU());
+    resolver.AddBuiltin(tflite::BuiltinOperator_MAX_POOL_2D, tflite::ops::micro::Register_MAX_POOL_2D());
+    resolver.AddBuiltin(tflite::BuiltinOperator_AVERAGE_POOL_2D, tflite::ops::micro::Register_AVERAGE_POOL_2D());
+	resolver.AddBuiltin(tflite::BuiltinOperator_SOFTMAX, tflite::ops::micro::Register_SOFTMAX());
+	resolver.AddBuiltin(tflite::BuiltinOperator_RESHAPE, tflite::ops::micro::Register_RESHAPE());
+	resolver.AddBuiltin(tflite::BuiltinOperator_CONCATENATION, tflite::ops::micro::Register_CONCATENATION());
 
 	// Build an interpreter to run the model with.
 	static tflite::MicroInterpreter static_interpreter(model, resolver,
