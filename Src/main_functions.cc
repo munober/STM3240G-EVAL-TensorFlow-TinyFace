@@ -12,99 +12,39 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "tensorflow/lite/micro/kernels/micro_ops.h"
-#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-#include "tensorflow/lite/micro/micro_error_reporter.h"
-#include "tensorflow/lite/micro/micro_interpreter.h"
-#include "tensorflow/lite/schema/schema_generated.h"
-#include "tensorflow/lite/version.h"
+
+
+using namespace std;
+
+#include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 
 #include "main_functions.h"
+#include "tinyface.cpp.h"
 
-#include "constants.h"
-#include "model_data.h"
-// Globals, used for compatibility with Arduino-style sketches.
-namespace
-{
-tflite::ErrorReporter *error_reporter = nullptr;
-const tflite::Model *model = nullptr;
-tflite::MicroInterpreter *interpreter = nullptr;
-TfLiteTensor *input = nullptr;
-TfLiteTensor *output = nullptr;
-int inference_count = 0;
+// extern void tinyface_init();
+// extern void tinyface_invoke();
+// extern const size_t tinyface_output_size(int idx=0);
+// extern const int *tinyface_output_dims(int idx=0);
+// extern const int tinyface_output_dims_len(int idx=0);
 
-// Create an area of memory to use for input, output, and intermediate arrays.
-// Finding the minimum value for your model may require some trial and error.
-constexpr int kTensorArenaSize = 10 * 142176;
-uint8_t tensor_arena[kTensorArenaSize];
-} // namespace
+extern TfLiteTensor *tinyface_input(int idx=0);
+extern TfLiteTensor *tinyface_output(int idx=0);
 
 // The name of this function is important for Arduino compatibility.
 void setup()
 {
-	// Set up logging. Google style is to avoid globals or statics because of
-	// lifetime uncertainty, but since this has a trivial destructor it's okay.
-	// NOLINTNEXTLINE(runtime-global-variables)
-	static tflite::MicroErrorReporter micro_error_reporter;
-	error_reporter = &micro_error_reporter;
-
-	error_reporter->Report("Hello from the error reporter");
-
-	// Map the model into a usable data structure. This doesn't involve any
-	// copying or parsing, it's a very lightweight operation.
-	model = tflite::GetModel(model_data_tflite);
-	if (model->version() != TFLITE_SCHEMA_VERSION) {
-		error_reporter->Report(
-			"Model provided is schema version %d not equal "
-			"to supported version %d.",
-			model->version(), TFLITE_SCHEMA_VERSION);
-		return;
-	}
-
-	tflite::MicroMutableOpResolver<4> resolver;
-    resolver.AddBuiltin(tflite::BuiltinOperator_DEPTHWISE_CONV_2D, tflite::ops::micro::Register_DEPTHWISE_CONV_2D());
-	resolver.AddBuiltin(tflite::BuiltinOperator_RELU, tflite::ops::micro::Register_RELU());
-    resolver.AddBuiltin(tflite::BuiltinOperator_MAX_POOL_2D, tflite::ops::micro::Register_MAX_POOL_2D());
-    resolver.AddBuiltin(tflite::BuiltinOperator_AVERAGE_POOL_2D, tflite::ops::micro::Register_AVERAGE_POOL_2D());
-	resolver.AddBuiltin(tflite::BuiltinOperator_SOFTMAX, tflite::ops::micro::Register_SOFTMAX());
-	resolver.AddBuiltin(tflite::BuiltinOperator_RESHAPE, tflite::ops::micro::Register_RESHAPE());
-	resolver.AddBuiltin(tflite::BuiltinOperator_CONCATENATION, tflite::ops::micro::Register_CONCATENATION());
-
-	// Build an interpreter to run the model with.
-	static tflite::MicroInterpreter static_interpreter(model, resolver,
-							   tensor_arena,
-							   kTensorArenaSize,
-							   error_reporter);
-	interpreter = &static_interpreter;
-
-	// Allocate memory from the tensor_arena for the model's tensors.
-	TfLiteStatus allocate_status = interpreter->AllocateTensors();
-	if (allocate_status != kTfLiteOk) {
-		error_reporter->Report("AllocateTensors() failed");
-		return;
-	}
-
-	// Obtain pointers to the model's input and output tensors.
-	input = interpreter->input(0);
-	output = interpreter->output(0);
-
-	// Keep track of how many inferences we have performed.
-	inference_count = 0;
+    tinyface_init();
 }
 
 // The name of this function is important for Arduino compatibility.
-char loop(uint8_t *img, uint32_t size)
+float *loop(uint8_t *img, uint32_t size)
 {
-	static TfLiteStatus invoke_status;
 	for (uint32_t i = 0; i < size; i++)
-		input->data.f[i] = img[i];
+        tflite::GetTensorData<float>(tinyface_input())[0] = img[i];
 
-	// Run inference, and report any error
-	invoke_status = interpreter->Invoke();
-	if (invoke_status != kTfLiteOk) {
-		error_reporter->Report("Invoke failed");
-	}
+    tinyface_invoke();
 
-	// Read the predicted y value from the model's output tensor
-	return (char)output->data.f[0];
+    auto output_array = &tflite::GetTensorData<float>(tinyface_output())[0];
+    return output_array;
 }

@@ -49,6 +49,7 @@
 #include "constants.h"
 #include "model_data.h"
 
+
 /** @addtogroup STM32F4xx_HAL_Applications
   * @{
   */
@@ -133,12 +134,10 @@ int main(void)
        - Set NVIC Group Priority to 4
        - Global MSP (MCU Support Package) initialization
      */
-  HAL_Init();
-  
-  /* Configure the system clock to 168 MHz */
-  SystemClock_Config();
+    HAL_Init();
+    SystemClock_Config();
 
-  UartHandle.Instance = USARTx;
+    UartHandle.Instance = USARTx;
 	UartHandle.Init.BaudRate = 9600;
 	UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
 	UartHandle.Init.StopBits = UART_STOPBITS_1;
@@ -155,39 +154,21 @@ int main(void)
 	printf("UART online\n");
   
   /* Configure LED1 and LED3 */
-  BSP_LED_Init(LED1);
-  BSP_LED_Init(LED2);
-  BSP_LED_Init(LED3);
-  BSP_LED_Init(LED4);
-  printf("initialized led's");
-  
-  /*##-1- Init Host Library ##################################################*/
-  // USBH_Init(&hUSBHost, USBH_UserProcess, 0);
-  
-  /* Add Supported Class */
-  // USBH_RegisterClass(&hUSBHost, USBH_MSC_CLASS);
-  
-  /* Start Host Process */
-  // USBH_Start(&hUSBHost);
+    BSP_LED_Init(LED1);
+    BSP_LED_Init(LED2);
+    BSP_LED_Init(LED3);
+    BSP_LED_Init(LED4);
+    printf("initialized led's");
+
   
   /*##-2- Configure Tamper button ############################################*/
-  BSP_PB_Init(BUTTON_TAMPER, BUTTON_MODE_GPIO);
-  
-  /*##-3- Link the USB Host disk I/O driver ##################################*/
-  // FATFS_LinkDriver(&USBH_Driver, MSC_Path);
+    BSP_PB_Init(BUTTON_TAMPER, BUTTON_MODE_GPIO);
+    BSP_LCD_Init(); 
+    BSP_SRAM_Init();
+    BSP_CAMERA_Init(RESOLUTION_R320x240);
+    BSP_CAMERA_ContinuousStart((uint8_t *)CAMERA_FRAME_BUFFER);
+    
 
-  /*##-4- Initialize the SRAM and LCD ########################################*/ 
-  BSP_LCD_Init(); 
-  BSP_SRAM_Init();
-  
-  /*##-5- Camera Initialization and start capture ############################*/
-  /* Initialize the Camera */
-  BSP_CAMERA_Init(RESOLUTION_R320x240);
-  
-  /* Start the Camera Capture */
-  BSP_CAMERA_ContinuousStart((uint8_t *)CAMERA_FRAME_BUFFER);
-   
-  /*##-6- Run Application ####################################################*/
   while (1)
   { 
     CAMERA_Capture();
@@ -333,7 +314,7 @@ static void DetectFace(void){
   BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)"starting inference", LEFT_MODE);
   BSP_LED_On(LED1); // starting inference
   static char ret_char;
-  ret_char = loop((uint8_t*)resized_buffer, CNN_IMG_SIZE * CNN_IMG_SIZE);
+//   ret_char = loop((uint8_t*)resized_buffer, CNN_IMG_SIZE * CNN_IMG_SIZE);
   BSP_LED_Off(LED1);
   
   BSP_LCD_DisplayStringAt(20, 20, (uint8_t *)((int)ret_char * 100), LEFT_MODE);
