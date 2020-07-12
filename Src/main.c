@@ -92,7 +92,6 @@ MSC_ApplicationTypeDef Appli_state = STORAGE_IDLE;
 static void SystemClock_Config(void);
 static void PicturePrepare(void);
 static void Error_Handler(void);
-static void SavePicture(void);
 static void CAMERA_Capture(void);
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id);
 void resize_rgb565in_rgb888out(uint8_t* camera_image, uint8_t* resize_image);
@@ -102,6 +101,22 @@ static uint8_t NormalizeImage(uint8_t image);
 #define RGB565_TO_R(pixel)   (((pixel & 0x1F) << 3) | ((((pixel & 0x1F) << 3) & 0xE0) >> 5));
 #define RGB565_TO_G(pixel)   (((pixel & 0x7E0) >> 3) | ((((pixel & 0x7E0) >> 3) & 0xC0) >> 6));
 #define RGB565_TO_B(pixel)   (((pixel & 0xF800) >> 8) | ((((pixel & 0xF800) >> 8) & 0xE0) >> 5));
+
+UART_HandleTypeDef UartHandle;
+
+/**
+  * @brief  Retargets the C library printf function to the USART.
+  * @param  None
+  * @retval None
+  */
+// PUTCHAR_PROTOTYPE
+// {
+// 	/* Place your implementation of fputc here */
+// 	/* e.g. write a character to the EVAL_COM1 and Loop until the end of transmission */
+// 	HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+
+// 	return ch;
+// }
   
 /* Private functions ---------------------------------------------------------*/
 
@@ -122,27 +137,44 @@ int main(void)
   
   /* Configure the system clock to 168 MHz */
   SystemClock_Config();
+
+  UartHandle.Instance = USARTx;
+	UartHandle.Init.BaudRate = 9600;
+	UartHandle.Init.WordLength = UART_WORDLENGTH_8B;
+	UartHandle.Init.StopBits = UART_STOPBITS_1;
+	UartHandle.Init.Parity = UART_PARITY_ODD;
+	UartHandle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	UartHandle.Init.Mode = UART_MODE_TX_RX;
+	UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
+
+	if (HAL_UART_Init(&UartHandle) != HAL_OK) {
+		/* Initialization Error */
+		Error_Handler();
+	}
+
+	printf("UART online\n");
   
   /* Configure LED1 and LED3 */
   BSP_LED_Init(LED1);
   BSP_LED_Init(LED2);
   BSP_LED_Init(LED3);
   BSP_LED_Init(LED4);
+  printf("initialized led's");
   
   /*##-1- Init Host Library ##################################################*/
-  USBH_Init(&hUSBHost, USBH_UserProcess, 0);
+  // USBH_Init(&hUSBHost, USBH_UserProcess, 0);
   
   /* Add Supported Class */
-  USBH_RegisterClass(&hUSBHost, USBH_MSC_CLASS);
+  // USBH_RegisterClass(&hUSBHost, USBH_MSC_CLASS);
   
   /* Start Host Process */
-  USBH_Start(&hUSBHost);
+  // USBH_Start(&hUSBHost);
   
   /*##-2- Configure Tamper button ############################################*/
   BSP_PB_Init(BUTTON_TAMPER, BUTTON_MODE_GPIO);
   
   /*##-3- Link the USB Host disk I/O driver ##################################*/
-  FATFS_LinkDriver(&USBH_Driver, MSC_Path);
+  // FATFS_LinkDriver(&USBH_Driver, MSC_Path);
 
   /*##-4- Initialize the SRAM and LCD ########################################*/ 
   BSP_LCD_Init(); 
@@ -158,19 +190,7 @@ int main(void)
   /*##-6- Run Application ####################################################*/
   while (1)
   { 
-    /* USB Host Background task */
-    USBH_Process(&hUSBHost);
-
-    switch(Appli_state)
-    {
-    case STORAGE_READY:
-      CAMERA_Capture();
-      break;
-        
-    case STORAGE_IDLE:
-    default:
-      break;      
-    } 
+    CAMERA_Capture();
   }
 }
 
@@ -186,72 +206,6 @@ void BSP_CAMERA_FrameEventCallback(void)
 }
 
 /**
-  * @brief  Main routine for Mass Storage Class
-  * @param  None
-  * @retval None
-  */
-static void SavePicture(void)
-{
-  FRESULT res1, res2;     /* FatFs function common result code */
-  uint32_t byteswritten;  /* File write count */
-  
-  static uint32_t counter = 0;
-  uint8_t str[30];
-  
-  /* Suspend the camera capture */
-  // BSP_CAMERA_Suspend();
-  
-  /* Prepare the image to be saved */
-  // PicturePrepare();
-  
-  /* Format the string */
-  // sprintf((char *)str, "image_%lu.bmp", counter);
-  
-  
-  /* Create and Open a new file object with write access */
-  // if(f_open(&MyFile, (const char*)str, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) 
-  // {
-  //   Error_Handler();
-  // }
-  // else
-  // {
-  //   /* Write data to the BMP file */
-  //   res1 = f_write(&MyFile, (uint32_t *)aBMPHeader, 54, (void *)&byteswritten);
-  //   res2 = f_write(&MyFile, (uint16_t *)SRAM_DEVICE_ADDR, (BSP_LCD_GetYSize()*BSP_LCD_GetXSize()*sizeof(uint32_t)), (void *)&byteswritten);
-
-  //   /*
-  //       file to be written is at &MyFile
-  //       pointer to data is aBMPHeader
-  //   */
-    
-    
-  //   if((res1 != FR_OK) || (res2 != FR_OK) || (byteswritten == 0))
-  //   {
-  //     Error_Handler();
-  //   }
-  //   else
-  //   {
-  //     /* Close the open BMP file */
-  //     f_close(&MyFile);
-      
-  //     /* Success of the demo: no error occurrence */
-  //     BSP_LED_On(LED1);
-
-  //     /* Holding up */
-  //     HAL_Delay(500);
-
-  //     counter++;
-  //     BSP_LED_Off(LED1);
-  //     BSP_LED_Off(LED4);
-  //   }
-  // }
-
-
-
-
-}
-
-/**
   * @brief  Main routine for Camera capture
   * @param  None
   * @retval None
@@ -264,7 +218,6 @@ static void CAMERA_Capture(void)
     {
       if(BSP_PB_GetState(BUTTON_TAMPER) != GPIO_PIN_SET) 
       {
-        // SavePicture();
         BSP_CAMERA_Suspend();
         DetectFace();
         BSP_CAMERA_Resume();

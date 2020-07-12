@@ -46,6 +46,23 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
+
+#define USARTx_RX_GPIO_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
+#define USARTx_TX_GPIO_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
+
+#define USARTx_FORCE_RESET() __HAL_RCC_USART3_FORCE_RESET()
+#define USARTx_RELEASE_RESET() __HAL_RCC_USART3_RELEASE_RESET()
+
+/* Definition for USARTx Pins */
+#define USARTx USART3
+#define USARTx_CLK_ENABLE() __HAL_RCC_USART3_CLK_ENABLE();
+#define USARTx_TX_PIN GPIO_PIN_10
+#define USARTx_TX_GPIO_PORT GPIOC
+#define USARTx_TX_AF GPIO_AF7_USART3
+#define USARTx_RX_PIN GPIO_PIN_11
+#define USARTx_RX_GPIO_PORT GPIOC
+#define USARTx_RX_AF GPIO_AF7_USART3
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm324xg_eval.h"
 #include "stm324xg_eval_lcd.h"

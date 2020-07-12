@@ -106,5 +106,5 @@ char loop(uint8_t *img, uint32_t size)
 	}
 
 	// Read the predicted y value from the model's output tensor
-	return (char)output->data.f[0] + 48;
+	return (char)output->data.f[0];
 }
